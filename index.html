@@ -1145,7 +1145,7 @@ function raccoltaTabelle(ctx) {
     try { t = fn(); }
     catch (e) { log(`${breve}: ${e.message}`, "err"); tabelle.push({ breve, nome: "", stato: "mancante", mancanti: [e.message], servono: [], ...extra }); return; }
     const stato = t.mancaCorrente ? "mancante" : t.mancanti.size ? "incompleta" : "ok";
-    const rec = { breve, nome: t.nome, stato, mancanti: [...t.mancanti], servono: [...t.servono.values()], ...extra };
+    const rec = { breve, nome: t.nome, stato, mancanti: [...t.mancanti], servono: [...t.servono.values()], suggeriti: t.suggeriti || [], ...extra };
     if (!ctx.prova && stato !== "mancante") rec.dati = creaXlsx(t.fogli || [t]);
     tabelle.push(rec);
     if (ctx.prova) return;
@@ -1280,17 +1280,19 @@ function tabICTerritori(S, anno, trim) {
 // I dati mancanti non bloccano nulla: le celle restano vuote.
 function tabICMonitoraggio(S, anno, trim, cl) {
   const T = nuovaTab(NOME_MONITORAGGIO, "", [], [], []);
-  const manca = d => T.mancanti.add(d);
+  // dati mancanti (solo anno in corso) e file che li contengono: suggeriti, non obbligatori
+  const suggeriti = new Map();
+  const manca = (d, f) => { T.mancanti.add(d); if (f) suggeriti.set(f.chiave, f); };
   const conPct = (ces, cnu) => {
     const uff = ces == null || cnu == null ? null : ces - cnu;
     return [ces, cnu, uff, p2(quota(uff, ces))];
   };
-  const cum = (y, leggi, descr) => {
+  const cum = (y, leggi, descr, file) => {
     let isc = 0, ces = 0, cnu = 0, ok = [true, true, true];
     for (let t = 1; t <= trim; t++) {
       const o = leggi(y, t) || {};
       if (o.isc == null) ok[0] = false; else isc += o.isc;
-      if (o.ces == null) { ok[1] = false; if (y === anno && descr) manca(`${descr} cessazioni totali ${nomeTrim(y, t)}`); } else ces += o.ces;
+      if (o.ces == null) { ok[1] = false; if (descr) manca(`${descr} cessazioni totali ${nomeTrim(y, t)}`, file && file(y, t)); } else ces += o.ces;
       if (o.cesnu == null) ok[2] = false; else cnu += o.cesnu;
     }
     return { isc: ok[0] ? isc : null, ces: ok[1] ? ces : null, cesnu: ok[2] ? cnu : null };
@@ -1304,31 +1306,31 @@ function tabICMonitoraggio(S, anno, trim, cl) {
   const righeT = [];
   for (let y = y0, t = t0; y < anno || (y === anno && t <= trim); ) {
     const v = varese(y, t);
-    if (y === anno && t === trim && v.ces == null) manca(`Varese cessazioni totali ${nomeTrim(y, t)}`);
     righeT.push([y, nomeTrim(y, t), v.isc, ...conPct(v.ces, v.cesnu), v.isc == null || v.ces == null ? null : v.isc - v.ces, v.isc == null || v.cesnu == null ? null : v.isc - v.cesnu]);
     if (t < 4) t += 1; else { y += 1; t = 1; }
   }
   for (const y of [anno - 1, anno]) {
-    const v = cum(y, varese, "Varese");
+    const v = cum(y, varese, "Varese", (a, t) => fGrezzoF(a, t));
     righeT.push([y, `Cumulato ${periodo} ${y}`, v.isc, ...conPct(v.ces, v.cesnu), v.isc == null || v.ces == null ? null : v.isc - v.ces, v.isc == null || v.cesnu == null ? null : v.isc - v.cesnu]);
   }
   const intT = ["Anno", "Periodo", "Iscrizioni", "Cessazioni totali", "Cessazioni non d'ufficio", "Cessazioni d'ufficio", "% d'ufficio sul totale",
                 "Saldo con cessazioni totali", "Saldo con cessazioni non d'ufficio (report)"];
 
   // 2) territori e 3) settori di Varese: trimestre e cumulato dell'anno
-  const trimECum = leggi => {
-    const q = leggi(anno, trim) || {}, c = cum(anno, leggi, "");
+  const trimECum = (leggi, descr, file) => {
+    const q = leggi(anno, trim) || {}, c = cum(anno, leggi, descr, file);
     return [q.isc ?? null, ...conPct(q.ces ?? null, q.cesnu ?? null), c.isc, ...conPct(c.ces, c.cesnu)];
   };
   const nt = nomeTrim(anno, trim), nc = `cumulato ${periodo} ${anno}`;
   const colonneTC = [nt, nc].flatMap(p => [`Iscrizioni ${p}`, `Cessazioni totali ${p}`, `Cessazioni non d'ufficio ${p}`, `Cessazioni d'ufficio ${p}`, `% d'ufficio ${p}`]);
   const righeTerr = [...PROVINCE, REGIONE, ITALIA].map(terr => {
-    const r = trimECum((a, t) => ({ isc: S.terrVal(a, t, terr, "isc"), ces: S.terrVal(a, t, terr, "ces"), cesnu: S.terrVal(a, t, terr, "cesnu") }));
-    if (r[1] == null) manca(`${terr} cessazioni totali ${nt}`);
+    const r = trimECum((a, t) => ({ isc: S.terrVal(a, t, terr, "isc"), ces: S.terrVal(a, t, terr, "ces"), cesnu: S.terrVal(a, t, terr, "cesnu") }),
+                       terr, (a, t) => fTerrF(a, t, terr));
     return [terr === REGIONE ? "LOMBARDIA" : terr === ITALIA ? "ITALIA" : terr, ...r];
   });
   const intTerr = ["Territorio", ...colonneTC];
-  const righeSett = CLASSIFICAZIONI[cl].settori.map(([nome]) => [nome, ...trimECum((a, t) => S.flusso(cl, a, t, `Settore - ${nome}`))]);
+  const righeSett = CLASSIFICAZIONI[cl].settori.map(([nome]) => [nome, ...trimECum((a, t) => S.flusso(cl, a, t, `Settore - ${nome}`),
+                                                                                  `settore ${nome}`, (a, t) => fGrezzoF(a, t, cl))]);
   const totS = [1, 2, 3, 6, 7, 8].map(j => somma(righeSett.map(r => r[j])));
   righeSett.push(["Totale", totS[0], ...conPct(totS[1], totS[2]), totS[3], ...conPct(totS[4], totS[5])]);
   const intSett = ["Settore", ...colonneTC];
@@ -1350,6 +1352,7 @@ function tabICMonitoraggio(S, anno, trim, cl) {
     { foglio: "Territori", intest: intTerr, righe: righeTerr, colValori: [2, 3, 4, 5, 7, 8, 9, 10], colPct: [6, 11] },
     { foglio: "Settori_Varese", intest: intSett, righe: righeSett, colValori: [2, 3, 4, 5, 7, 8, 9, 10], colPct: [6, 11] },
   ];
+  T.suggeriti = [...suggeriti.values()].sort((x, y) => x.chiave < y.chiave ? -1 : 1);
   return T;
 }
 
@@ -1384,7 +1387,8 @@ function generaIscrizioniCessazioni(inp, ctx) {
     cartella: `Report_iscritte_cessate_${anno}_T${trim}`, cartellaMonitoraggio: `NON_DA_CARICARE_monitoraggio_cessazioni_${anno}_T${trim}`,
     ateco: cl, tabelle: report, servono: [...servono.values()],
     file: report.filter(t => t.dati).map(t => ({ nome: t.nome, dati: t.dati, incompleto: t.stato !== "ok" })),
-    monitoraggio: mon && mon.dati ? { nome: mon.nome, dati: mon.dati, incompleto: mon.stato !== "ok", mancanti: mon.mancanti } : null,
+    monitoraggio: mon && mon.dati ? { nome: mon.nome, dati: mon.dati, incompleto: mon.stato !== "ok", mancanti: mon.mancanti, suggeriti: mon.suggeriti } : null,
+    controlloMonitoraggio: mon ? { stato: mon.stato, mancanti: mon.mancanti, suggeriti: mon.suggeriti } : null,
     storico: S, storicoXlsx: ctx.prova ? null : storicoInXlsx(S, nomeTrim(anno, trim)),
   };
 }
@@ -1984,6 +1988,30 @@ if (typeof module !== "undefined" && module.exports) {
       s.textContent = "✓ Ci sono tutti i dati: tutte le tabelle saranno complete.";
       box.appendChild(s);
     }
+    // file di monitoraggio (non fa parte del report): cosa manca e quali file lo completano, senza bloccare nulla
+    const cm = esito.controlloMonitoraggio;
+    if (cm && stato.storico) {
+      const s = document.createElement("div");
+      s.className = "monitoraggio";
+      const h = document.createElement("b");
+      h.textContent = "🔍 File di monitoraggio (non per Osserva): ";
+      s.appendChild(h);
+      if (cm.stato === "ok") s.append("completo.");
+      else {
+        s.append(`avrà alcune celle vuote, perché nello storico mancano le cessazioni totali di ${cm.mancanti.length} voci (es. ${cm.mancanti.slice(0, 2).join("; ")}). ` +
+                 "Il report per Osserva NON ne risente. Per completarlo carica nel riquadro «File di periodi passati» (facoltativo; per l'anno prima vanno bene anche i dati grezzi in ATECO 2007):");
+        const ul = document.createElement("ul");
+        for (const f of cm.suggeriti) {
+          const li = document.createElement("li"), c = document.createElement("code");
+          c.textContent = f.nome;
+          const caricato = stato.file.get(f.chiave);
+          li.append(c, ` — ${f.descr}` + (caricato ? ` → il file caricato (${caricato.nome}) non ha la colonna delle cessazioni totali` : ""));
+          ul.appendChild(li);
+        }
+        s.appendChild(ul);
+      }
+      box.appendChild(s);
+    }
     btn.disabled = !stato.file.has(chiaveDi("grezzo", { anno, trim }));
     btn.title = btn.disabled ? `Carica prima i dati grezzi del ${nomeTrim(anno, trim)}` : "";
   }
@@ -2029,7 +2057,7 @@ if (typeof module !== "undefined" && module.exports) {
         voci.push({ nome: `${esito.cartellaMonitoraggio}/${mon.nome}`, dati: mon.dati });
         const riga = document.createElement("div"), nome = document.createElement("span");
         riga.className = "file";
-        nome.textContent = mon.nome + (mon.incompleto ? " (alcune celle vuote: nello storico mancano le cessazioni totali di qualche periodo)" : "");
+        nome.textContent = mon.nome + (mon.incompleto ? ` (alcune celle vuote: mancano le cessazioni totali; si completa caricando in «File di periodi passati» ${mon.suggeriti.map(f => f.nome).join(", ")} e rigenerando)` : "");
         nome.className = "muted";
         riga.append(nome, linkDownload(mon.nome, mon.dati, XLSX));
         $("#elencoMonitor").appendChild(riga);
