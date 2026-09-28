@@ -6,7 +6,9 @@
 COS'E'
   Una sola pagina, index.html, che prende i file scaricati da Stockview e crea
   tutte le tabelle Excel REGISTRATE_ATTIVE_*.xlsx da caricare su Osserva.
-  Funziona nel browser (Chrome, Edge, Firefox), anche aperta con doppio clic.
+  Sito: https://lucaportu.github.io/report-imprese-stockview/
+  (repository GitHub lucaportu/report-imprese-stockview: se si modifica
+  index.html va ricaricato li'). Funziona anche aperta con doppio clic.
   I file NON escono dal computer: la pagina non invia dati a nessun server.
   Sostituisce la versione 5_Web_Imprese_Stockview.
 
@@ -18,8 +20,11 @@ OGNI TRIMESTRE
                          Attive di Varese a fine mese (es. 202604_m.csv)
        - AAAAT_sa.csv    province lombarde: Registrate e ATTIVE (es. 20262_sa.csv)
        - AAAAT_sa (1).csv  totale Italia: Registrate e Attive
-     I nomi vanno lasciati come li crea Stockview: la pagina capisce il
-     periodo dal nome.
+     I nomi si possono anche cambiare: il TIPO di file si capisce dal
+     contenuto; il periodo dei dati grezzi dal contenuto (iscrizioni);
+     quello degli altri file dal nome (anche "aprile 2026", "2026-04",
+     "II trim 2026", "2026 T2"...) o, se il nome non lo dice, dal riquadro
+     in cui li trascini. Vanno bene anche salvati in Excel (.xlsx).
   2. Apri la pagina e scegli ANNO e TRIMESTRE del report.
   3. Trascina i file nei riquadri (o clicca un riquadro per sfogliare le
      cartelle). Si possono trascinare anche tutti insieme in un riquadro
