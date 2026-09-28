@@ -1,13 +1,16 @@
 ==============================================================================
-   REPORT IMPRESE - STOCKVIEW (VERSIONE WEB, NESSUNA INSTALLAZIONE)   v2.1
+   REPORT IMPRESE - STOCKVIEW (VERSIONE WEB, NESSUNA INSTALLAZIONE)   v2.2
    Sezioni: IMPRESE REGISTRATE E ATTIVE  -  ISCRIZIONI E CESSAZIONI
+            PROCEDURE CONCORSUALI E SCIOGLIMENTI
 ==============================================================================
 
 COS'E'
   Una sola pagina, index.html, che prende i file scaricati da Stockview e crea
   le tabelle Excel da caricare su Osserva: REGISTRATE_ATTIVE_*.xlsx (sezione
-  "Imprese registrate e attive") e Iscritte_cessate_*.xlsx (sezione
-  "Iscrizioni e cessazioni"). La sezione si sceglie in alto, al punto 1.
+  "Imprese registrate e attive"), Iscritte_cessate_*.xlsx (sezione
+  "Iscrizioni e cessazioni") e Procedure_*/Scioglimento_*.xlsx (sezione
+  "Procedure concorsuali e scioglimenti"). La sezione si sceglie in alto,
+  al punto 1.
   Sito: https://lucaportu.github.io/report-imprese-stockview/
   (repository GitHub lucaportu/report-imprese-stockview: se si modifica
   index.html va ricaricato li'). Funziona anche aperta con doppio clic.
@@ -55,7 +58,9 @@ LA SERIE STORICA (Storico_imprese_Varese.xlsx)
   Contiene tutto quello che serve per i confronti: trimestre precedente,
   stesso trimestre dell'anno prima, mesi dal 2009, anni dal 2005, settori,
   forme giuridiche, province e Italia; per le iscrizioni e cessazioni anche
-  i flussi di Varese per trimestre dal 2005 e i flussi per settore.
+  i flussi di Varese per trimestre dal 2005 e i flussi per settore; per le
+  procedure concorsuali le aperture di Varese (anni dal 2006, trimestri dal
+  2020, mesi dal 2026 anche delle province) e gli stock a fine trimestre.
   La pagina la aggiorna a ogni report.
   Si puo' aprire in Excel e correggere a mano (non cambiare nomi di fogli e
   colonne). Quella in questa cartella e' aggiornata al II trim 2026
@@ -102,4 +107,44 @@ ISCRIZIONI E CESSAZIONI (seconda sezione)
    Le celle vuote sono periodi di cui lo storico non ha le cessazioni totali:
    si riempiono caricando i dati grezzi (o province/Italia con la colonna
    Cessazioni) di quei trimestri.
+
+PROCEDURE CONCORSUALI E SCIOGLIMENTI (terza sezione)
+  Stessa pagina e stessa serie storica: scegli "Procedure concorsuali e
+  scioglimenti" al punto 1, poi anno e trimestre. Servono:
+   - la serie storica;
+   - AAAAMM_me.csv       Varese, un file per ogni mese del trimestre
+                         (es. 202604_me.csv): colonne Classe Evento,
+                         Settore, Classe di Natura Giuridica, Aperture Eventi
+                         Procedure (settori in ATECO 2025);
+   - AAAAMM_me (1).csv   province lombarde, un file per ogni mese del
+                         trimestre: colonne Provincia, Classe Evento,
+                         Aperture Eventi Procedure;
+   - AAAAT_sa.csv        stock di Varese a fine trimestre per "Status
+                         d'Impresa" (colonna Registrate: righe "con Procedure
+                         concorsuali" e "in Scioglimento o Liquidazione").
+                         Stesso tipo di nome dei file province/Italia: la
+                         pagina lo riconosce dal contenuto.
+  Tabelle: Procedure_e_scioglim_trimestre, _sintesi; Procedure_settori,
+  _settori_x_grafico, _tipo, _territori e le stesse per Scioglimento_; con
+  il IV trimestre anche Procedure_e_scioglim_anno (un anno per riga dal 2007).
+  REGOLE (ricavate dalle tabelle pubblicate del II trim 2026):
+   - procedure concorsuali = tutte le classi di evento tranne "Scioglimento
+     e liquidazione" (crisi d'impresa, procedimenti crisi d'impresa,
+     fallimento, concordato, altre);
+   - le aperture sono flussi: i mesi dell'anno si SOMMANO (II trimestre =
+     gennaio-giugno, confrontato con gennaio-giugno dell'anno prima);
+     solo Procedure_e_scioglim_trimestre ha i trimestri singoli;
+   - gli STOCK (solo nella sintesi) NON si sommano: fine trimestre, confronto
+     con lo stesso trimestre dell'anno prima;
+   - settori_x_grafico: Servizi = sezioni H-T, Altro = B, D, E, X;
+   - territori: Lombardia = somma delle 12 province;
+   - variazioni e pesi arrotondati a 2 decimali;
+   - II trim 2022 (1.830 scioglimenti, di cui 1.698 straordinari): nelle
+     variazioni del 2023 vale 132 come base, come nelle tabelle pubblicate
+     (per questo "2022*" nella tabella anno).
+  I mesi gia' passati dell'anno vengono dalla serie storica. Se ne manca
+  uno, il controllo dice quale file caricare in "File di periodi passati".
+  Per i report del III e IV trim 2026 la serie storica non ha ancora lo
+  stock del III e IV trim 2025: il controllo chiedera' 20253_sa.csv e
+  20254_sa.csv (stock di Varese per status d'impresa), una volta sola.
 ==============================================================================
