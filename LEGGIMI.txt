@@ -25,7 +25,9 @@ OGNI TRIMESTRE
      quello degli altri file dal nome (anche "aprile 2026", "2026-04",
      "II trim 2026", "2026 T2"...) o, se il nome non lo dice, dal riquadro
      in cui li trascini. Vanno bene anche salvati in Excel (.xlsx).
-  2. Apri la pagina e scegli ANNO e TRIMESTRE del report.
+  2. Apri la pagina e scegli ANNO e TRIMESTRE del report (dal II trim 2026:
+     l'ATECO 2025 e' in vigore dal II trim 2025 e serve il confronto con
+     l'anno prima, quindi prima non si puo').
   3. Trascina i file nei riquadri (o clicca un riquadro per sfogliare le
      cartelle). Si possono trascinare anche tutti insieme in un riquadro
      qualsiasi: la pagina li riconosce e li mette al posto giusto.
@@ -49,6 +51,10 @@ LA SERIE STORICA (Storico_imprese_Varese.xlsx)
   forme giuridiche, province e Italia. La pagina la aggiorna a ogni report.
   Si puo' aprire in Excel e correggere a mano (non cambiare nomi di fogli e
   colonne). Quella in questa cartella e' aggiornata al II trim 2026.
+
+ESEMPIO COMPLETO
+  La cartella Input_II_trim_2026 contiene tutti i file per rifare il report
+  del II trim 2026 (con la serie storica com'era prima, al I trim 2026).
 
 PRIMO ANNO CON ATECO 2025 (dal III trim 2026 al I trim 2027)
   Nello storico i settori in ATECO 2025 ci sono solo per II trim 2025,

@@ -235,6 +235,8 @@ const CLASSIFICAZIONI = {
   },
 };
 const ATECO_PREDEFINITA = "2025";   // quella dei download dal II trim 2026
+// primo report possibile: l'ATECO 2025 è in vigore dal II trim 2025 e i report confrontano con lo stesso trimestre dell'anno prima
+const PRIMO_REPORT = { anno: 2026, trim: 2 };
 // Classe di natura giuridica (colonna CNG) -> tabella tipo (non dipende dall'ATECO)
 const FORME = [["Società di capitale", "BC"], ["Società di persone", "CP"], ["Imprese individuali", "DI"], ["Altre forme", "EF"]];
 
@@ -964,6 +966,8 @@ function generaRegistrateAttive(inp, ctx) {
   ctx = Object.assign({ log() {}, prova: false }, ctx || {});
   const log = ctx.log;
   if (![1, 2, 3, 4].includes(trim)) throw new ErroreDati("Il trimestre deve essere 1, 2, 3 o 4.");
+  if (anno * 4 + trim < PRIMO_REPORT.anno * 4 + PRIMO_REPORT.trim)
+    throw new ErroreDati(`Il primo report possibile è il ${nomeTrim(PRIMO_REPORT.anno, PRIMO_REPORT.trim)}: l'ATECO 2025 è in vigore dal ${nomeTrim(PRIMO_REPORT.anno - 1, PRIMO_REPORT.trim)} e serve il confronto con l'anno prima.`);
   const file = inp.file || [];
   const grezzi = file.filter(f => f.tipo === "grezzo").sort((a, b) => ordineP(a.periodo) - ordineP(b.periodo));
   const corrente = grezzi.find(f => f.periodo.anno === anno && f.periodo.trim === trim);
@@ -1270,10 +1274,19 @@ if (typeof module !== "undefined" && module.exports) {
 
   // periodo predefinito: l'ultimo trimestre concluso
   const oggi = new Date();
-  for (let y = oggi.getFullYear(); y >= 2020; y--) selAnno.add(new Option(String(y), String(y)));
+  // si può scegliere solo dal PRIMO_REPORT (II trim 2026) in poi
+  const P0 = PRIMO_REPORT.anno * 4 + PRIMO_REPORT.trim;
+  for (let y = Math.max(oggi.getFullYear(), PRIMO_REPORT.anno); y >= PRIMO_REPORT.anno; y--) selAnno.add(new Option(String(y), String(y)));
   const conclusi = Math.floor(oggi.getMonth() / 3);
-  selAnno.value = String(conclusi ? oggi.getFullYear() : oggi.getFullYear() - 1);
-  selTrim.value = String(conclusi || 4);
+  const predef = Math.max(P0, conclusi ? oggi.getFullYear() * 4 + conclusi : (oggi.getFullYear() - 1) * 4 + 4);
+  selAnno.value = String(Math.floor((predef - 1) / 4));
+  selTrim.value = String((predef - 1) % 4 + 1);
+  function limitaTrimestri() {
+    const a = Number(selAnno.value);
+    for (const o of selTrim.options) o.disabled = a * 4 + Number(o.value) < P0;
+    if (selTrim.selectedOptions[0].disabled) selTrim.value = String(PRIMO_REPORT.trim);
+  }
+  limitaTrimestri();
   const periodo = () => ({ anno: Number(selAnno.value), trim: Number(selTrim.value) });
 
   function scrivi(testo, classe) {
@@ -1437,6 +1450,7 @@ if (typeof module !== "undefined" && module.exports) {
     $("#notaPeriodo").textContent = trim === 4
       ? `IV trimestre: oltre alle tabelle trimestrali viene creata anche la tabella annuale tempo_anno ${anno} (dati a dicembre).`
       : `La tabella annuale tempo_anno si crea solo con il IV trimestre.`;
+    $("#notaPeriodo").textContent += ` I report partono dal ${nomeTrim(PRIMO_REPORT.anno, PRIMO_REPORT.trim)}: l'ATECO 2025 è in vigore dal ${nomeTrim(PRIMO_REPORT.anno - 1, PRIMO_REPORT.trim)} e serve il confronto con l'anno prima.`;
   }
 
   /* ---------- caricamento dei file ---------- */
@@ -1601,7 +1615,7 @@ if (typeof module !== "undefined" && module.exports) {
   window.addEventListener("dragover", e => e.preventDefault());
   window.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files.length) carica([...e.dataTransfer.files], null); });
   const cambioPeriodo = () => { for (const k of Object.keys(stato.errori)) delete stato.errori[k]; risultati.hidden = true; aggiorna(); };
-  selAnno.addEventListener("change", cambioPeriodo);
+  selAnno.addEventListener("change", () => { limitaTrimestri(); cambioPeriodo(); });
   selTrim.addEventListener("change", cambioPeriodo);
   aggiorna();
 })();
