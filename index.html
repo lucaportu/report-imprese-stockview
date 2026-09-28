@@ -1507,10 +1507,11 @@ if (typeof module !== "undefined" && module.exports) {
     titolo.className = "nota"; titolo.style.marginTop = "0";
     titolo.textContent = `Tabelle del ${nomeTrim(anno, trim)}${trim === 4 ? " (con tempo_anno)" : ""} · settori in ATECO ${esito.ateco}`;
     box.appendChild(titolo);
+    // senza la serie storica mancano per forza tutti i periodi passati: non ha senso elencarli come file da scaricare
     if (!stato.storico) {
       const a = document.createElement("div");
       a.className = "avviso"; a.style.margin = "0 0 10px";
-      a.textContent = "Manca la serie storica (Storico_imprese_Varese.xlsx): senza, i confronti con i periodi passati restano vuoti.";
+      a.textContent = "Carica prima la serie storica (Storico_imprese_Varese.xlsx): contiene i mesi, i trimestri e gli anni passati che servono per i confronti. Finché manca, le tabelle restano in attesa.";
       box.appendChild(a);
     }
     const tab = document.createElement("table");
@@ -1518,37 +1519,41 @@ if (typeof module !== "undefined" && module.exports) {
     for (const t of esito.tabelle) {
       const tr = tab.insertRow();
       tr.insertCell().textContent = t.breve;
-      const [testo, cls] = NOMI_STATO[t.stato];
+      const [testo, cls] = stato.storico || t.stato === "ok" ? NOMI_STATO[t.stato] : ["… in attesa", ""];
       const b = document.createElement("span");
       b.className = `badge ${cls}`; b.textContent = testo;
       tr.insertCell().appendChild(b);
       const d = tr.insertCell();
       d.className = "dett";
-      if (t.stato !== "ok") d.textContent = (t.stato === "mancante" ? "Manca: " : "Mancano nello storico: ") + t.mancanti.slice(0, 5).join("; ") + (t.mancanti.length > 5 ? `; … (${t.mancanti.length})` : "");
+      if (t.stato !== "ok" && stato.storico) d.textContent = (t.stato === "mancante" ? "Manca: " : "Mancano nello storico: ") + t.mancanti.slice(0, 5).join("; ") + (t.mancanti.length > 5 ? `; … (${t.mancanti.length})` : "");
     }
     box.appendChild(tab);
 
     const R = riquadri();
     const slot = new Map([...R.base, ...R.mesi, ...R.terr].filter(d => d.chiave).map(d => [d.chiave, d]));
-    if (esito.servono.length) {
+    const posto = f => [...slot.keys()].indexOf(f.chiave);
+    const delTrimestre = esito.servono.filter(f => slot.has(f.chiave)).sort((a, b) => posto(a) - posto(b));
+    const passati = stato.storico ? esito.servono.filter(f => !slot.has(f.chiave)).sort((a, b) => a.chiave < b.chiave ? -1 : 1) : [];
+    const elencoFile = (titolo, lista, dove) => {
       const s = document.createElement("div");
       s.className = "servono";
-      s.innerHTML = "<b>Per completare servono questi file</b> (da Stockview):";
+      s.innerHTML = titolo;
       const ul = document.createElement("ul");
-      // prima i file del trimestre scelto (nell'ordine dei riquadri), poi quelli dei periodi passati
-      const posto = f => { const i = [...slot.keys()].indexOf(f.chiave); return i < 0 ? 99 : i; };
-      for (const f of esito.servono.sort((a, b) => posto(a) - posto(b) || (a.chiave < b.chiave ? -1 : 1))) {
+      for (const f of lista) {
         const li = document.createElement("li"), c = document.createElement("code");
         c.textContent = f.nome;
-        const dove = slot.get(f.chiave);
         const caricato = stato.file.get(f.chiave);
-        li.append(c, ` — ${f.descr} → ` + (caricato ? `il file caricato (${caricato.nome}) non contiene i dati necessari`
-          : dove ? `riquadro «${dove.titolo.replace(/^\S+\s/, "")}»` : "riquadro «File di periodi passati»"));
+        li.append(c, ` — ${f.descr}` + (caricato ? ` → il file caricato (${caricato.nome}) non contiene i dati necessari` : dove(f)));
         ul.appendChild(li);
       }
       s.appendChild(ul);
       box.appendChild(s);
-    } else {
+    };
+    if (delTrimestre.length)
+      elencoFile(`<b>File del ${nomeTrim(anno, trim)} ancora da caricare</b>`, delTrimestre, f => ` → riquadro «${slot.get(f.chiave).titolo.replace(/^\S+\s/, "")}»`);
+    if (passati.length)
+      elencoFile("<b>Periodi passati che mancano nello storico</b> — scaricali da Stockview e mettili nel riquadro «File di periodi passati» (servono solo una volta):", passati, () => "");
+    if (!delTrimestre.length && !passati.length && stato.storico) {
       const s = document.createElement("div");
       s.className = "pronto";
       s.textContent = "✓ Ci sono tutti i dati: tutte le tabelle saranno complete.";
