@@ -58,20 +58,18 @@ LA SERIE STORICA (Storico_imprese_Varese.xlsx)
   i flussi di Varese per trimestre dal 2005 e i flussi per settore.
   La pagina la aggiorna a ogni report.
   Si puo' aprire in Excel e correggere a mano (non cambiare nomi di fogli e
-  colonne). Quella in questa cartella e' aggiornata al II trim 2026.
+  colonne). Quella in questa cartella e' aggiornata al II trim 2026
+  (con anche III e IV trim 2025 e I trim 2026 completi).
 
 ESEMPIO COMPLETO
   La cartella Input_II_trim_2026 contiene tutti i file per rifare il report
   del II trim 2026 (con la serie storica com'era prima, al I trim 2026).
 
-PRIMO ANNO CON ATECO 2025 (dal III trim 2026 al I trim 2027)
-  Nello storico i settori in ATECO 2025 ci sono solo per II trim 2025,
-  I trim 2026 e II trim 2026; province e Italia solo per II trim 2025 e
-  II trim 2026. Per i prossimi tre trimestri il controllo chiedera' anche i
-  file dello stesso trimestre dell'anno prima (es. per il III trim 2026:
-  32025VAS.csv in ATECO 2025, 20253_sa.csv, 20253_sa (1).csv): scaricali e
-  trascinali nel riquadro "File di periodi passati". Entrano nello storico
-  e non serviranno piu'.
+PRIMO ANNO CON ATECO 2025
+  La serie storica consegnata contiene gia' in ATECO 2025 i trimestri dal
+  II trim 2025 al II trim 2026 (settori, forme giuridiche, province, Italia).
+  Quindi per i prossimi report (III e IV trim 2026, I trim 2027...) bastano
+  i file del trimestre: il controllo non chiedera' file di periodi passati.
 
 ATECO 2007 / 2025
   La pagina riconosce da sola la classificazione del file dai codici ATECO.
